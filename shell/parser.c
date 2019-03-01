@@ -24,12 +24,8 @@ void Command_free(Command c) {
   VecString_free(c.args);
   VecString_free(c.in);
 
-rst
-
   VecString_free(c.out);
 }
-
-
 
 void Line_drop(Line l) {
   for (int i=0; i<l.commands.len; i++) {
@@ -161,14 +157,32 @@ int isPathChar(char x) {
 }
 
 int parsePath(State* state, String* output) {
-  String buffer;
-  int res = takeWhile(state, &buffer, isPathChar);
-  if (res < 1) {
-    return res;
+  String path = Vecchar_new();
+
+  bool quote = false;
+  int i;
+  for (i=0; i<state->input.len; i++) {
+    if (state->input.start[i] == '"') {
+      quote = !quote;
+      continue;
+    }
+
+    if (!isPathChar(state->input.start[i]) && !quote) {
+      break;
+    }
+
+    Vecchar_push_back(&path, state->input.start[i]);
   }
 
+  if (i == 0 || quote) {
+    Vecchar_free(path);
+    return false;
+  }
+
+  *output = path;
+  state->input = Vecchar_drop(state->input, i);
+
   parseWhitespace(state);
-  *output = buffer;
   return true;
 }
 

@@ -74,7 +74,12 @@ Vec ## itemT Vec ## itemT ## _take(Vec ## itemT vec, size_t n) { \
 } \
 Vec ## itemT Vec ## itemT ## _drop(Vec ## itemT vec, size_t n) { \
   return (Vec ## itemT) {vec.start + n, vec.len-n, 0}; \
-}
+} \
+Vec ## itemT Vec ## itemT ## _clone(Vec ## itemT vec) { \
+  Vec ## itemT res = {malloc(sizeof(itemT) * vec.len), vec.len, vec.len}; \
+  memcpy(res.start, vec.start, sizeof(itemT) * vec.len); \
+  return res; \
+} \
 // VecIter ## itemT Vec ## itemT ## _iter() { \
 //
 // }
