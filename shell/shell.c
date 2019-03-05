@@ -175,7 +175,7 @@ int run(Line line) {
 
   // check for errors in the command.
   // if an error is found, kill all the childs.
-	char msg;
+	int msg;
 	int b_read = read(err_fd[0], &msg, sizeof(int));
 	if (b_read > 0) {
     kill(-pid_arr[0], SIGKILL);
