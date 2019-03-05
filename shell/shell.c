@@ -69,8 +69,9 @@ void launch(Command c, int pgid, int pipeerr, int in, int out, bool foreground) 
     in = open(path, O_RDONLY);
     free(path);
 
-    if (out == -1) {
-      write(pipeerr, &errno, sizeof(int));
+    if (in == -1) {
+      int res = -1;
+      write(pipeerr, &res, sizeof(int));
       exit(-1);
     }
   }
@@ -83,7 +84,8 @@ void launch(Command c, int pgid, int pipeerr, int in, int out, bool foreground) 
     out = open(path, O_WRONLY);
     free(path);
     if (out == -1) {
-      write(pipeerr, &errno, sizeof(int));
+      int res = -1;
+      write(pipeerr, &res, sizeof(int));
       exit(-1);
     }
   }
@@ -113,7 +115,7 @@ int run(Line line) {
   if (line.is_fork) {
     last_out = -1;
   } else {
-    STDIN_FILENO;
+    last_out = STDIN_FILENO;
   }
 	int ret_val = 0;
 
@@ -133,10 +135,8 @@ int run(Line line) {
       fd[0] = -1;
       fd[1] = STDOUT_FILENO;
     } else if (pipe(fd)) {
-      ret_val = errno;
-      
-      // dont exit, as we want to clean up the processes
-      break;
+      perror("pipe");
+      exit(-1);
     }
 
     // start the subprocess
@@ -149,7 +149,10 @@ int run(Line line) {
     } else if (pid_arr[i_cmd] == 0) {
       // child
       close(err_fd[0]);
-      close(fd[0]);
+
+      if (fd[0] != -1) {
+        close(fd[0]);
+      }
     
       launch(command, pid_arr[0], err_fd[1], last_out, fd[1], false);
     }
@@ -180,7 +183,7 @@ int run(Line line) {
   }
 
   if (line.is_fork) {
-    // TODO add this to a running list
+    // TODO add this to a running list, and dont wait
   }
   // for (int i=0; i<line.commands.len; i++)
     // waitpid(pid_arr[i], NULL, WUNTRACED);
@@ -189,8 +192,17 @@ int run(Line line) {
 
   // cleanup
   Line_drop(line);
+  free(pid_arr);
 
 	return ret_val;
+}
+
+int run_buildin(String input) {
+  if (input.len == strlen("exit") && memcmp(input.start, "exit", input.len) == 0) {
+    exit(0);
+  }
+  
+  return false;
 }
 
 int main() {
@@ -209,13 +221,20 @@ int main() {
     if (!read_line(stdin, &input)) {
       // read_line returns 0 on EOF
       // so stop the main loop here.
+      Vecchar_free(input);
       break;
+    }
+
+    if (run_buildin(input)) {
+      Vecchar_free(input);
+      continue;
     }
 
     // parsing the input line
     Line line;
     if (!parse(input, &line)) {
       puts("Invalid syntax!");
+      Vecchar_free(input);
       continue;
     }
 
@@ -223,9 +242,15 @@ int main() {
     int res = run(line);
 		if (res == 2) {
 			puts("Error: command not found!");
+    } else if (res == -1) {
+			puts("Error: file not found!");
 		} else if (res != 0) {
 			printf("failed: %d, %s\n", errno, strerror(errno));
 		}
+
+    // cleanup
+    // Line_drop(line);
+    Vecchar_free(input);
   }
 
   return 0;

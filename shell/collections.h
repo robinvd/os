@@ -64,7 +64,9 @@ Vec ## itemT Vec ## itemT ## _new() { \
   return (Vec ## itemT){(itemT*)malloc(32*sizeof(itemT)), 0, 32}; \
 } \
 void Vec ## itemT ## _free(Vec ## itemT vec) { \
-  free(vec.start); \
+  if (vec.cap > 0) { \
+    free(vec.start); \
+  } \
 } \
 void Vec ## itemT ## _clear(Vec ## itemT* vec) { \
   vec->start = 0; \

@@ -21,9 +21,19 @@ void State_free(State* state) {
 }
 
 void Command_free(Command c) {
+  for (int i=0; i<c.args.len; i++) {
+    Vecchar_free(c.args.start[i]);
+  }
   VecString_free(c.args);
+
+  for (int i=0; i<c.in.len; i++) {
+    Vecchar_free(c.in.start[i]);
+  }
   VecString_free(c.in);
 
+  for (int i=0; i<c.out.len; i++) {
+    Vecchar_free(c.out.start[i]);
+  }
   VecString_free(c.out);
 }
 
@@ -207,6 +217,7 @@ int parseLine(State* state, Line* result) {
       res = parsePath(state, &path);
 
       if (res < 1) {
+        Command_free(curr);
         return -1;
       }
 
@@ -252,6 +263,8 @@ int parseLine(State* state, Line* result) {
       break;
     }
   }
+
+  Command_free(curr);
 
   // parseFork;
   res = parseString(state, &resBuffer, str("&"));
