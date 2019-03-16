@@ -46,6 +46,7 @@ Vec ## itemT Vec ## itemT ## _take(Vec ## itemT vec, size_t n); \
 Vec ## itemT Vec ## itemT ## _drop(Vec ## itemT vec, size_t n); \
 void Vec ## itemT ## _free(Vec ## itemT vec); \
 void Vec ## itemT ## _clear(Vec ## itemT* vec); \
+int Vec ## itemT ## _eq(Vec ## itemT a, Vec ## itemT b); \
 
 #define MAKEVEC(itemT) \
 void Vec ## itemT ## _push_back(Vec ## itemT* vec, itemT item) { \
@@ -81,6 +82,13 @@ Vec ## itemT Vec ## itemT ## _clone(Vec ## itemT vec) { \
   Vec ## itemT res = {malloc(sizeof(itemT) * vec.len), vec.len, vec.len}; \
   memcpy(res.start, vec.start, sizeof(itemT) * vec.len); \
   return res; \
+} \
+int Vec ## itemT ## _eq(Vec ## itemT a, Vec ## itemT b) { \
+  if (a.len == b.len && memcmp(a.start, b.start, a.len) == 0) { \
+    return true; \
+  } else { \
+    return false; \
+  } \
 } \
 // VecIter ## itemT Vec ## itemT ## _iter() { \
 //

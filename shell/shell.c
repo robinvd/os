@@ -62,6 +62,8 @@ void launch(Command c, int pgid, int pipeerr, int in, int out, bool foreground) 
   // if there is an in/out file then use that
   if (c.in.len > 0) {
     if (in != STDIN_FILENO) {
+      puts("child in");
+      dup2(STDOUT_FILENO, in);
       close(in);
     }
 
@@ -75,6 +77,7 @@ void launch(Command c, int pgid, int pipeerr, int in, int out, bool foreground) 
       exit(-1);
     }
   }
+    puts("child 2");
   if (c.out.len > 0) {
     if (out != STDOUT_FILENO) {
       close(out);
@@ -88,6 +91,12 @@ void launch(Command c, int pgid, int pipeerr, int in, int out, bool foreground) 
       write(pipeerr, &res, sizeof(int));
       exit(-1);
     }
+  }
+
+  if (c.out.len > 0 && c.in.len > 0 && Vecchar_eq(c.out.start[c.out.len-1], c.in.start[c.in.len-1])) {
+    int res = -2;
+    write(pipeerr, &res, sizeof(int));
+    exit(-1);
   }
 
   if (in != STDIN_FILENO) {
@@ -153,7 +162,8 @@ int run(Line line) {
       if (fd[0] != -1) {
         close(fd[0]);
       }
-    
+
+      puts("launch");
       launch(command, pid_arr[0], err_fd[1], last_out, fd[1], false);
     }
 
@@ -184,6 +194,7 @@ int run(Line line) {
 
   if (line.is_fork) {
     // TODO add this to a running list, and dont wait
+    exit(1);
   }
   // for (int i=0; i<line.commands.len; i++)
     // waitpid(pid_arr[i], NULL, WUNTRACED);
@@ -198,10 +209,16 @@ int run(Line line) {
 }
 
 int run_buildin(String input) {
-  if (input.len == strlen("exit") && memcmp(input.start, "exit", input.len) == 0) {
+  if (Vecchar_eq(input, str("exit"))) {
     exit(0);
   }
-  
+  if (Vecchar_eq(input, str("fg"))) {
+    exit(2);
+  }
+  if (Vecchar_eq(input, str("bg"))) {
+    exit(2);
+  }
+
   return false;
 }
 
@@ -212,9 +229,9 @@ int main() {
 
   while(true) {
     // type_prompt
-    if (is_interactive) {
-      printf("> ");
-    }
+    // if (is_interactive) {
+      // printf("> ");
+    // }
 
     // reading input
     String input = Vecchar_new();
@@ -244,6 +261,8 @@ int main() {
 			puts("Error: command not found!");
     } else if (res == -1) {
 			puts("Error: file not found!");
+		} else if (res == -2) {
+      puts("Error: input and output files cannot be equal!");
 		} else if (res != 0) {
 			printf("failed: %d, %s\n", errno, strerror(errno));
 		}
